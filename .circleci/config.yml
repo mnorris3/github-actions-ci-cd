@@ -1,57 +1,41 @@
-# This config was automatically generated from your source code
-# Stacks detected: cicd:github-actions:.github/workflows,deps:node:.
 version: 2.1
+
 orbs:
-  node: circleci/node@5
+  cypress: cypress-io/cypress@3.3.1
+
 jobs:
-  test-node:
-    # Install node dependencies and run tests
-    executor: node/default
-    steps:
-      - checkout
-      - node/install-packages:
-          pkg-manager: npm
-      - run:
-          name: Run tests
-          command: npm test --passWithNoTests
-  build-node:
-    # Build node project
-    executor: node/default
-    steps:
-      - checkout
-      - node/install-packages:
-          pkg-manager: npm
-      - run:
-          command: npm run build
-      - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
-      - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/artifacts
-          destination: node-build
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
+  start-server:
     docker:
-      - image: cimg/base:stable
+      - image: cypress/base:latest
     steps:
-      # Replace this with steps to deploy to users
+      - checkout
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Install dependencies
+          command: npm install
       - run:
-          name: found github actions config
-          command: ':'
+          name: Build the app
+          command: npm run build
+  deploy-to-render:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - run:
+          name: Deploy to Render Staging
+          command: |
+            echo "Deploying to Render Staging"
+            curl $RENDER_STAGING_DEPLOYHOOK
+
 workflows:
-  build-and-test:
+  run-tests-and-deploy-to-render:
     jobs:
-      - test-node
-      - build-node:
+      - start-server
+        # Make sure to add MONGODB_URI to ENVIRONMENT VARIABLES in CircleCI so that the tests can connect to the database
+      - cypress/run:
+          name: run-component-tests
+          cypress-command: npx cypress run --component
+      - deploy-to-render:
           requires:
-            - test-node
-    # - deploy:
-    #     requires:
-    #       - build-node
+            - run-component-tests
+          filters:
+            branches:
+              only: main
