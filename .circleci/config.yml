@@ -15,7 +15,7 @@ jobs:
       - run:
           name: Build the app
           command: npm run build
-  deploy-to-render-staging:
+  deploy-to-render:
     docker:
       - image: cimg/base:current
     steps:
@@ -26,14 +26,14 @@ jobs:
             curl $RENDER_STAGING_DEPLOYHOOK
 
 workflows:
-  run-tests-and-deploy-to-staging-hold-then-production:
+  run-tests-and-deploy-to-render:
     jobs:
       - start-server
         # Make sure to add MONGODB_URI to ENVIRONMENT VARIABLES in CircleCI so that the tests can connect to the database
       - cypress/run:
           name: run-component-tests
           cypress-command: npx cypress run --component
-      - deploy-to-render-staging:
+      - deploy-to-render:
           requires:
             - run-component-tests
           filters:
