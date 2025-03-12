@@ -23,7 +23,7 @@ jobs:
           name: Deploy to Render Staging
           command: |
             echo "Deploying to Render Staging"
-            curl $RENDER_STAGING_DEPLOYHOOK
+            curl $RENDER_DEPLOY_HOOK_URL
 
 workflows:
   run-tests-and-deploy-to-render:
